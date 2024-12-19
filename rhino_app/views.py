@@ -8,7 +8,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from .models import Preset
+from .models import Preset , Material
+from .forms import MaterialForm
 
 def solve_grasshopper(request):
     if request.method == "POST":
@@ -78,10 +79,17 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+
 @login_required
 def index(request):
+    # Fetch presets for the logged-in user
     presets = Preset.objects.filter(user=request.user).values('id', 'name', 'inputs')
-    return render(request, 'rhino_app/index.html', {'presets': presets})
+    
+    # Fetch materials for the logged-in user
+    materials = Material.objects.all()
+    
+    # Pass both presets and materials to the template
+    return render(request, 'rhino_app/index.html', {'presets': presets, 'materials': materials})
 
 @login_required
 def save_preset(request):
@@ -106,3 +114,14 @@ def delete_preset(request, preset_id):
         return JsonResponse({'success': True})
     except Preset.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Preset not found or unauthorized'}, status=404)
+
+@login_required
+def create_material(request):
+    if request.method == 'POST':
+        form = MaterialForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('index')  # Redirect to a material list or another relevant page
+    else:
+        form = MaterialForm()
+    return render(request, 'rhino_app/index.html', {'form': form})

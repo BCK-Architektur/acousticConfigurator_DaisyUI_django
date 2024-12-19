@@ -116,7 +116,10 @@ function attachEventListeners() {
   // Attach event listeners for all <input> elements
   const inputs = document.querySelectorAll('input');
   inputs.forEach((input) => {
-    if (input.type === 'text') {
+    // Skip inputs with the "no-update" class
+    if (input.classList.contains('no-update')) return;
+
+    if (input.type === 'number') {
       let typingTimer; // Timer identifier
       const typingDelay = 3000; // Delay in milliseconds
 
@@ -132,6 +135,9 @@ function attachEventListeners() {
   // Attach event listeners for all <select> elements
   const selects = document.querySelectorAll('select');
   selects.forEach((select) => {
+    // Skip selects with the "no-update" class
+    if (select.classList.contains('no-update')) return;
+
     select.addEventListener('change', onSliderChange); // Use 'change' for dropdowns
   });
 
@@ -143,13 +149,18 @@ function attachEventListeners() {
     const windowPosition = document.getElementById(`windowPosition_${i}`);
 
     if (doorWall) {
-      doorWall.addEventListener('change', () => updateRangeForWall(doorWall, doorPosition, true)); // true for door
+      doorWall.addEventListener('change', () =>
+        updateRangeForWall(doorWall, doorPosition, true)
+      ); // true for door
     }
     if (windowWall) {
-      windowWall.addEventListener('change', () => updateRangeForWall(windowWall, windowPosition, false)); // false for window
+      windowWall.addEventListener('change', () =>
+        updateRangeForWall(windowWall, windowPosition, false)
+      ); // false for window
     }
   }
 }
+
 
 // Function to update the range slider values based on the selected wall
 function updateRangeForWall(wallSelect, slider, isDoor) {
@@ -690,7 +701,7 @@ function getCSRFToken() {
 }
 
 async function savePreset() {
-  const presetName = prompt('Enter a name for your preset:');
+  const presetName = prompt('Enter a name for your project:');
   if (!presetName) return;
 
   const url = '/save_preset/';
@@ -709,7 +720,7 @@ async function savePreset() {
 
     const data = await response.json();
     if (data.success) {
-      alert('Preset saved successfully!');
+      alert('Project saved successfully!');
 
       // Add the new preset to the dropdown dynamically
       const presetsDropdown = document.getElementById('presets-dropdown');
@@ -722,10 +733,10 @@ async function savePreset() {
       // Optionally, select the new preset
       presetsDropdown.value = data.preset_id;
     } else {
-      alert(`Failed to save preset: ${data.error}`);
+      alert(`Failed to save project: ${data.error}`);
     }
   } catch (error) {
-    console.error('Error saving preset:', error);
+    console.error('Error saving project:', error);
   }
 }
 
@@ -753,7 +764,7 @@ async function loadPresets() {
           presetsDropdown.appendChild(option);
       });
   } catch (error) {
-      console.error('Error loading presets:', error);
+      console.error('Error loading project:', error);
   }
 }
 
@@ -762,7 +773,7 @@ function applyPreset() {
   const selectedOption = presetsDropdown.options[presetsDropdown.selectedIndex];
 
   if (!selectedOption) {
-    console.error("No option selected in the presets dropdown");
+    console.error("No option selected in the projects dropdown");
     return;
   }
 
@@ -795,7 +806,7 @@ function applyPreset() {
     onSliderChange();
 
   } catch (error) {
-    console.error("Error parsing or applying preset inputs:", error);
+    console.error("Error parsing or applying projectsinputs:", error);
     console.error("Raw inputs causing error:", rawInputs);
   }
 }
@@ -805,7 +816,7 @@ async function deletePreset() {
   const selectedOption = presetsDropdown.options[presetsDropdown.selectedIndex];
 
   if (!selectedOption || !selectedOption.value) {
-    alert("Please select a preset to delete.");
+    alert("Please select a project to delete.");
     return;
   }
 
@@ -821,15 +832,15 @@ async function deletePreset() {
     });
 
     if (response.ok) {
-      alert("Preset deleted successfully.");
+      alert("Project deleted successfully.");
       selectedOption.remove(); // Remove the deleted preset from the dropdown
     } else {
       const data = await response.json();
-      alert(`Failed to delete preset: ${data.error}`);
+      alert(`Failed to delete project: ${data.error}`);
     }
   } catch (error) {
     console.error("Error deleting preset:", error);
-    alert("An error occurred while deleting the preset.");
+    alert("An error occurred while deleting the project.");
   }
 }
 
@@ -839,8 +850,8 @@ let controlWindow = null;
 function startPresentation() {
   // Check if the control window is already open
   if (controlWindow && !controlWindow.closed) {
-      alert('Control window is already open!');
-      return;
+    alert('Control window is already open!');
+    return;
   }
 
   // Hide the overlay in the main window
@@ -850,63 +861,36 @@ function startPresentation() {
   // Open a new window for the controls
   controlWindow = window.open('', 'ControlsWindow', 'width=400,height=800');
   if (!controlWindow) {
-      alert('Unable to open the control window. Please check your browser settings.');
-      return;
+    alert('Unable to open the control window. Please check your browser settings.');
+    return;
   }
 
   // Write the structure of the control window
   controlWindow.document.write(`
+    {% load static %}
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Controls</title>
+        <link rel="stylesheet" href="{% static 'css/output.css' %}">
         <style>
+            #overlay {
+                pointer-events: auto; /* Allow mouse events to pass through */
+                z-index: 1;
+                width: 100%; /* Full width for the control window */
+                height: 100vh; /* Fill the entire height of the screen */
+                overflow-y: auto; /* Enable scrolling if the content overflows */
+                background-color: #f9f9f9; /* Optional: set a background color for clarity */
+                padding: 10px; /* Optional: add padding inside the panel */
+                box-sizing: border-box; /* Include padding and border in the width/height */
+            }
+            #overlay div { padding: 5px; }
             body {
                 font-family: Arial, sans-serif;
                 margin: 0;
-                padding: 15px;
                 background-color: #f9f9f9;
-            }
-            h1 {
-                text-align: center;
-                color: #007aff;
-                font-size: 18px;
-                margin-bottom: 10px;
-            }
-            #inputs {
-                overflow-y: auto;
-                max-height: calc(100vh - 40px);
-                background-color: #fff;
-                padding: 10px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            }
-            input[type="number"], input[type="range"], select {
-                width: 100%;
-                padding: 6px;
-                margin-bottom: 8px;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                font-size: 13px;
-            }
-            input[type="checkbox"] {
-                margin-right: 8px;
-            }
-            label {
-                font-size: 12px;
-                font-weight: bold;
-                display: block;
-                margin-bottom: 5px;
-            }
-            .section {
-                margin-bottom: 15px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid #ddd;
-            }
-            select {
-                height: 28px;
             }
             button {
                 background-color: #007aff;
@@ -920,31 +904,30 @@ function startPresentation() {
             button:hover {
                 background-color: #005bb5;
             }
-            button#delete-preset-button {
-                background-color: #d9534f;
-            }
-            button#delete-preset-button:hover {
-                background-color: #b52e26;
-            }
-            #presets-dropdown {
-                font-size: 13px;
-                height: 28px;
-                margin-bottom: 10px;
-            }
-            .btn-container {
-                display: flex;
-                gap: 10px;
-            }
         </style>
     </head>
     <body>
-        <h1>Controls</h1>
-        <div id="inputs"></div>
+        <div id="overlay" class="p-6 bg-base-100 shadow-lg rounded-lg">
+          <div class="flex flex-col gap-4">
+            <label for="presets-dropdown" class="text-xl font-bold">Presets:</label>
+            <select id="presets-dropdown" class="select select-bordered w-full">
+              <option value="" disabled selected>Select a preset...</option>
+              <!-- Presets will be dynamically added here -->
+            </select>
+            <div class="flex gap-4">
+              <button id="save-preset-button" class="btn btn-outline btn-neutral">Save</button>
+              <button id="delete-preset-button" class="btn btn-outline btn-error" disabled>Delete</button>
+            </div>
+          </div>
+          <div id="inputs" class="mt-6">
+            <h2 class="text-xl font-bold">Room Setup</h2>
+            <!-- Inputs will be dynamically added here -->
+          </div>
+        </div>
     </body>
     </html>
-    `);
-    
-
+  `);
+  
   controlWindow.document.close();
 
   // Clone the overlay content (inputs) into the new window
@@ -955,11 +938,11 @@ function startPresentation() {
   clonedOverlay.style.position = 'static';
 
   // Append the cloned overlay to the new window
-  const inputsContainer = controlWindow.document.getElementById('inputs');
-  if (inputsContainer) {
-      inputsContainer.appendChild(clonedOverlay);
+  const overlayContainer = controlWindow.document.getElementById('overlay');
+  if (overlayContainer) {
+    overlayContainer.replaceWith(clonedOverlay);
   } else {
-      console.error('Could not find inputs container in the new window.');
+    console.error('Could not find overlay container in the new window.');
   }
 
   // Add event listeners to sync changes between windows
@@ -968,6 +951,7 @@ function startPresentation() {
   // Monitor if the control window is closed
   monitorControlWindow();
 }
+
 
 function setupSyncBetweenWindows(controlWindow) {
     // Sync changes made in the control window to the main window
@@ -1067,3 +1051,4 @@ window.applyPreset = applyPreset;
     }
   });
   
+
