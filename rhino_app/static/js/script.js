@@ -29,7 +29,6 @@ updateVisibility();
 initializeSliders();
 compute()
 
-
   /////////////////////////////////////////////////////////////////////////////
  //                            HELPER  FUNCTIONS                            //
 /////////////////////////////////////////////////////////////////////////////
@@ -1000,56 +999,76 @@ window.deletePreset = deletePreset;
 window.applyPreset = applyPreset;
 
 
-  // Placeholder data for RT vs Frequencies
-  const frequencies = [125, 250, 500, 1000, 2000, 4000]; // Frequencies in Hz
-  const rtValues = [1.2, 1.1, 0.9, 0.8, 0.7, 0.6]; // Reverberation Times in seconds
 
-  // Initialize the Chart
-  const ctx = document.getElementById('rtChart').getContext('2d');
-  const rtChart = new Chart(ctx, {
+// Data for the chart
+const frequencies = [125, 250, 500, 1000, 2000, 4000];
+const rtValues = [0.8, 1.5, 0.9, 0.8, 0.7, 0.6];
+
+// Chart options
+const options = {
+  chart: {
     type: 'line',
-    data: {
-      labels: frequencies,
-      datasets: [{
-        label: 'RT (s)',
-        data: rtValues,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderWidth: 2,
-        tension: 0.3,
-      }]
+    height: 350, // Adjust the height as needed
+    toolbar: {
+      show: true, // Display the toolbar for interactivity
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'Frequency (Hz)',
-            font: { size: 14 },
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: 'Reverberation Time (s)',
-            font: { size: 14 },
-          },
-          beginAtZero: true,
-        }
+  },
+  series: [
+    {
+      name: 'RT (s)', // Label for the data series
+      data: rtValues,
+    },
+  ],
+  xaxis: {
+    categories: frequencies, // Frequencies as X-axis labels
+    title: {
+      text: 'Frequency (Hz)', // X-axis title
+      style: {
+        fontSize: '12px',
+        fontWeight: 'bold',
       },
-      plugins: {
-        legend: {
-          display: true, // Ensure the legend is displayed
-          labels: {
-            usePointStyle: true, // Use point instead of checkbox-like box
-            boxWidth: 0, // Disable box completely
-          },
-          position: 'top', // Position the legend on top
+    },
+  },
+  yaxis: {
+    title: {
+      text: 'RT (s)', // Y-axis title
+      style: {
+        fontSize: '12px',
+        fontWeight: 'bold',
+      },
+    },
+    min: 0, // Start Y-axis at 0
+  },
+  stroke: {
+    curve: 'smooth', // Smooth lines
+    width: 2,
+  },
+  markers: {
+    size: 5, // Marker size for points
+    colors: ['#75CFCF'], // Customize marker colors
+  },
+  tooltip: {
+    enabled: true, // Enable tooltips for better interactivity
+    y: {
+      formatter: (value) => `${value.toFixed(2)} s`, // Format Y-axis values
+    },
+  },
+  colors: ['#4CAF50'], // Line color
+  grid: {
+    borderColor: '#e7e7e7',
+  },
+  responsive: [
+    {
+      breakpoint: 600,
+      options: {
+        chart: {
+          height: 300, // Adjust height for small screens
         },
       },
-    }
-  });
-  
+    },
+  ],
+};
 
+// Render the chart
+const chart = new ApexCharts(document.querySelector("#rtChart2"), options);
+chart.render();
