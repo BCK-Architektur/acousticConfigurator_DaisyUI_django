@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,8 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'blogApp.apps.BlogappConfig',
     'django_browser_reload',
+    'rhino_app',
 ]
 
 MIDDLEWARE = [
@@ -118,9 +120,23 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "rhino_app/static"]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'rhino_app/static']
+
+# Rhino Compute Configuration
+RHINO_COMPUTE_URL = "http://localhost:6001/"
+RHINO_COMPUTE_API_KEY = ""
+
+# Path to the Grasshopper files directory
+GRASSHOPPER_FILES_DIR = os.path.join(BASE_DIR, "grasshopper_files")
+
+LOGIN_URL = '/login/'  # Redirect to your custom login page

@@ -16,10 +16,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-import blogApp.views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', blogApp.views.index, name='index'),
+    path('', include('rhino_app.urls')),  # Include rhino_app URLs
     path('__reload__/', include('django_browser_reload.urls')),
 ]

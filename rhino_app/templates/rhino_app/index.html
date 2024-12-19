@@ -1,0 +1,640 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <link rel="icon" href="data:,">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Acoustic Configurator</title>
+    <style>
+        body {
+          overflow: hidden; /* Disable both horizontal and vertical scrolling */
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, Helvetica;
+          font-size: 14px;
+          color: #333;
+          background-color: #eeeeee;
+        }
+        canvas { width: 80%; height: 100%; }
+        input[type=range] { width: 100%; }
+        #container { position: relative; }
+        #container canvas, #overlay { position: absolute; }
+        #overlay {
+            pointer-events: auto; /* Allow mouse events to pass through */
+            z-index: 1;
+            width: 18%; /* Adjust width as needed */
+            height: 100vh; /* Fill the entire height of the screen */
+            overflow-y: auto; /* Enable scrolling if the content overflows */
+            background-color: #f9f9f9; /* Optional: set a background color for clarity */
+            padding: 10px; /* Optional: add padding inside the panel */
+            box-sizing: border-box; /* Include padding and border in the width/height */
+        }
+        #overlay div { padding: 5px; }
+        #loader {
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #3d3d3d; /* Grey */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            z-index: 2;
+        }
+        /* Add styles for panel output */
+        #panelOutput {
+            pointer-events: none; /* Allow mouse events to pass through */
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 20px;
+        }
+        #inputs {
+            max-height: 96vh; /* Adjust height as needed */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Input and range sliders */
+        input[type="number"], select {
+            appearance: none;
+            border: 1px solid #ccc;
+            outline: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            width: 150px;
+            background: transparent;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            border-color: #007aff; /* Blue focus inspired by Apple */
+            box-shadow: 0 0 5px rgba(0, 122, 255, 0.5);
+        }
+
+        /* Range slider */
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #bdbdbd;
+            border-radius: 5px;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        input[type="range"]:focus {
+            background: #007aff;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #007aff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 122, 255, 0.5);
+        }
+
+        input[type="checkbox"] {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #007aff;
+            border-radius: 4px;
+            background: white;
+            display: inline-block;
+            vertical-align: middle;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        input[type="checkbox"]:checked {
+            background: #007aff;
+            transform: scale(1.1);
+        }
+
+        input[type="checkbox"]::before {
+            content: "✓";
+            display: block;
+            text-align: center;
+            color: white;
+            font-size: 12px;
+            line-height: 16px;
+            visibility: hidden;
+        }
+
+        input[type="checkbox"]:checked::before {
+            visibility: visible;
+        }
+
+        /* Label styling */
+        /* Adjust label styling for checkboxes */
+        label {
+            font-size: 14px;
+            color: #272727;
+            display: inline-block; /* Change from block to inline-block */
+            margin-bottom: 0; /* Ensure no extra spacing below the label */
+            vertical-align: middle; /* Align with checkbox */
+        }
+
+        div {
+            margin-bottom: 15px;
+        }
+
+        /* Select dropdown */
+        select {
+            padding-right: 40px; /* For dropdown icon */
+            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"%3E%3Cpath fill="none" stroke="%23333" stroke-width="2" d="M5 8l5 5 5-5"/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 15px;
+        }
+
+        /* Display selected value for sliders */
+        span {
+            font-size: 12px;
+            color: #494949;
+            display: inline-block;
+            margin-left: 10px;
+            margin-top: 5px;
+        }
+        hr.solid {
+          margin: 10px;
+          border-top: 1px solid #bbb;
+        }
+        #panelWidgets {
+            display: grid; /* Use Grid Layout */
+            grid-template-columns: repeat(2, 1fr); /* 2 columns of equal width */
+            grid-template-rows: repeat(3, 1fr); /* 3 rows of equal height */
+            gap: 5px; /* Add spacing between the widgets */
+            position: absolute; /* Ensure it stays positioned relative to the viewport */
+            top: 100px; /* Distance from the top of the screen */
+            right: 10px; /* Distance from the right of the screen */
+            padding: 5px; /* Optional padding around the container */
+            z-index: 1000; /* Ensure it stays above other elements */
+            width: 300px; /* Adjust width to fit 2 columns */
+            height: 530px; /* Adjust height to fit 3 rows */
+            overflow: hidden; /* Remove scrolling */
+            border-radius: 10px; /* Optional: add rounded corners */
+        }
+
+        .circular-widget {
+            width: 120px; /* Adjust size */
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column; /* Stack label and value vertically */
+            align-items: center;
+            justify-content: center;
+            background: #f6f6f6; /* Clean solid background */
+            color: #333;
+            text-align: center;
+            font-family: 'Arial', sans-serif; /* Simple font */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            transition: transform 0.2s, box-shadow 0.2s;
+            padding: 10px;
+            position: relative;
+        }
+
+        .circular-widget:hover {
+            transform: perspective();
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Keep shadow consistent */
+        }
+
+        .circular-widget .value {
+            font-size: 28px; /* Adjust font size as needed */
+            font-weight: 400; /* Regular weight for Space Grotesk */
+            font-family: 'Space Grotesk', sans-serif; /* Apply the Space Grotesk font */
+            color: #333; /* Dark text color */
+        }
+
+
+        .circular-widget .label {
+            font-size: 12px; /* Small text for labels */
+            font-weight: 400;
+            margin-top: 6px; /* Spacing below number */
+            color: #666; /* Lighter text color */
+        }
+
+        /* Style for the Presets Section */
+        #presets-dropdown {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            background-color: transparent; /* Keep dropdown transparent */
+        }
+
+        #save-preset-button, #delete-preset-button {
+            display: flex; /* Use flexbox for alignment */
+            align-items: center; /* Center content vertically */
+            justify-content: center; /* Center content horizontally */
+            padding: 8px 12px;
+            border: 1px solid #333; /* Border for the button */
+            background-color: transparent; /* Transparent background */
+            color: #333; /* Dark text color */
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            gap: 5px; /* Add spacing between text and icon */
+            transition: background-color 0.3s, color 0.3s, transform 0.2s;
+        }
+
+        /* Hover effect */
+        #save-preset-button:hover,
+        #delete-preset-button:hover {
+            background-color: #333; /* Filled background on hover */
+            color: white; /* White text on hover */
+            transform: scale(1.05); /* Slightly enlarge button on hover */
+        }
+
+        /* Delete button specific styling */
+        #delete-preset-button {
+            color: #d9534f; /* Red color for delete button */
+            border-color: #d9534f;
+        }
+
+        #delete-preset-button:hover {
+            background-color: #d9534f; /* Red fill on hover */
+            color: white;
+        }
+
+
+        #topbar {
+            position: fixed;
+            bottom: 10px; /* Position at the bottom */
+            right: 10px; /* Position at the right */
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc; /* Match border styling */
+            border-radius: 5px; /* Rounded corners */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Space between elements */
+        }
+
+        /* Style for the Logout button */
+        #topbar button {
+            padding: 8px 12px;
+            border: 1px solid #333; /* Match button border */
+            background-color: transparent; /* Transparent background */
+            color: #333; /* Match text color */
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s, transform 0.2s;
+            display: flex; /* Center text */
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Hover effect for Logout button */
+        #topbar button:hover {
+            background-color: #333; /* Filled background on hover */
+            color: white; /* White text on hover */
+            transform: scale(1.05); /* Slightly enlarge button */
+        }
+
+
+      /* Make buttons and select dropdown take up the available space on smaller screens */
+      #presets-dropdown {
+          flex: 1;
+          min-width: 150px; /* Ensure a minimum width for dropdown */
+      }
+
+      #save-preset-button, #delete-preset-button {
+          flex: 1;
+          min-width: 75px; /* Ensure a minimum width for buttons */
+          text-align: center; /* Center-align text */
+      }
+
+      /* Adjust spacing between elements for smaller screens */
+      @media (max-width: 600px) {
+          #overlay > div {
+              flex-direction: column; /* Stack items vertically */
+              align-items: stretch; /* Stretch items to fill container width */
+          }
+
+          #save-preset-button, #delete-preset-button {
+              width: 100%; /* Make buttons take up the full width */
+          }
+
+          #presets-dropdown {
+              width: 100%; /* Make dropdown take up the full width */
+          }
+      }
+
+      #logo-container {
+          position: absolute;
+          top: 30px; /* Adjust the distance from the top */
+          right: 20px; /* Align it with the widgets */
+          z-index: 1100; /* Ensure it stays above the widgets */
+          text-align: center; /* Center-align the logo within the container */
+      }
+
+      #logo {
+          width: 100px; /* Set the desired width of the logo */
+          height: auto; /* Maintain the aspect ratio */
+          object-fit: contain; /* Make sure the logo fits well */
+      }
+
+
+
+    </style>
+</head>
+<body>
+    <div id="loader"></div> 
+    <div id="container">
+ 
+        <div id="overlay">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="presets-dropdown" style="font-size: 16px; font-weight: bold;">Presets:</label>
+            <select id="presets-dropdown" onchange="applyPreset()">
+                <option value="" disabled selected>Select a preset...</option>
+                {% for preset in presets %}
+                <option value="{{ preset.id }}" data-inputs="{{ preset.inputs|safe }}">{{ preset.name }}</option>
+                {% endfor %}
+            </select>
+            <div style="display: flex; gap: 10px; justify-content: flex-start;">
+                <button id="save-preset-button" onclick="savePreset()" title="Save Preset">Save</button>
+                <button id="delete-preset-button" onclick="deletePreset()" title="Delete Preset">🗑️</button>
+            </div>
+        </div>
+        
+            <div id="inputs">
+                <h2>Room Setup</h2>
+                <div>
+                  <label for="x_size">X Size(mm):</label>
+                  <input type="number" id="x_size" value="5000">
+                </div>
+                <div>
+                  <label for="y_size">Y Size(mm):</label>
+                  <input type="number" id="y_size" value="5000">
+                </div>
+                <div>
+                  <label for="z_size">Z Size(mm):</label>
+                  <input type="number" id="z_size" value="3000">
+                </div>
+                <div>
+                  <label for="numberOfDoors">Number of Doors:</label>
+                  <select id="numberOfDoors">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="doorPosition_1">Door Position 1:</label>
+                  <select id="doorWall_1">
+                    <option value="wall1">Wall 1</option>
+                    <option value="wall2">Wall 2</option>
+                    <option value="wall3">Wall 3</option>
+                    <option value="wall4">Wall 4</option>
+                  </select>
+                  <input type="range" id="doorPosition_1" min="36" max="1000" value="500">
+                  <span id="doorPosition_1_value">500</span>
+                </div>
+                <div>
+                  <label for="doorPosition_2">Door Position 2:</label>
+                  <select id="doorWall_2">
+                    <option value="wall1">Wall 1</option>
+                    <option value="wall2">Wall 2</option>
+                    <option value="wall3">Wall 3</option>
+                    <option value="wall4">Wall 4</option>
+                  </select>
+                  <input type="range" id="doorPosition_2" min="36" max="1000" value="835">
+                  <span id="doorPosition_2_value">835</span>
+                </div>
+                <div>
+                  <label for="doorPosition_3">Door Position 3:</label>
+                  <select id="doorWall_3">
+                    <option value="wall1">Wall 1</option>
+                    <option value="wall2">Wall 2</option>
+                    <option value="wall3">Wall 3</option>
+                    <option value="wall4">Wall 4</option>
+                  </select>
+                  <input type="range" id="doorPosition_3" min="36" max="1000" value="200">
+                  <span id="doorPosition_3_value">200</span>
+                </div>
+
+                <div>
+                  <label for="numberOfWindows">Number of Windows:</label>
+                  <select id="numberOfWindows">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="windowPosition_1">Window Position 1:</label>
+                  <select id="windowWall_1">
+                    <option value="wall1">Wall 1</option>
+                    <option value="wall2"selected>Wall 2</option>
+                    <option value="wall3">Wall 3</option>
+                    <option value="wall4">Wall 4</option>
+                  </select>
+                  <input type="range" id="windowPosition_1" min="0" max="1000" value="300">
+                  <span id="windowPosition_1_value">300</span>
+                </div>
+                <div>
+                  <label for="windowPosition_2">Window Position 2:</label>
+                  <select id="windowWall_2">
+                    <option value="wall1">Wall 1</option>
+                    <option value="wall2">Wall 2</option>
+                    <option value="wall3">Wall 3</option>
+                    <option value="wall4">Wall 4</option>
+                  </select>
+                  <input type="range" id="windowPosition_2" min="0" max="1000" value="600">
+                  <span id="windowPosition_2_value">600</span>
+                </div>
+                <div>
+                  <label for="windowPosition_3">Window Position 3:</label>
+                  <select id="windowWall_3">
+                    <option value="wall1">Wall 1</option>
+                    <option value="wall2">Wall 2</option>
+                    <option value="wall3">Wall 3</option>
+                    <option value="wall4">Wall 4</option>
+                  </select>
+                  <input type="range" id="windowPosition_3" min="0" max="1000" value="900">
+                  <span id="windowPosition_3_value">900</span>
+                </div>
+                <hr class="solid">
+
+                <h2>Speaker Setup</h2>
+                <div>
+                  <label for="stereoSetup">Stereo Setup:</label>
+                  <input type="checkbox" id="stereoSetup" value="unchecked">
+                </div>
+                <div>
+                  <label for="speakerSetup">Speaker Setup:</label>
+                  <select id="speakerSetup">
+                    <option value="1" selected>7.1.4</option>
+                    <option value="2" >7.1.6</option>
+                    <option value="3">9.1.4</option>
+                    <option value="4">9.1.6</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="changeSpeakerOrientationToOrthogonal">Orthogonal Speaker Orientation:</label>
+                  <input type="checkbox" id="changeSpeakerOrientationToOrthogonal" value="checked">
+                </div>
+                <div>
+                  <label for="listenerPosition">Listener Position(mm):</label>
+                  <input type="range" id="listenerPosition" min="800" max="1500" value="940">
+                  <span id="listenerPosition_value">940</span>
+                </div>
+                <div>
+                  <label for="speakerWallOffset">Speaker Wall Offset(mm):</label>
+                  <input type="range" id="speakerWallOffset" min="250" max="1000" value="500">
+                  <span id="speakerWallOffset_value">500</span>
+                </div>
+                <div>
+                  <label for="speakerOrientation">Speaker Orientation:</label>
+                  <select id="speakerOrientation">
+                    <option value="1" >1</option>
+                    <option value="2" >2</option>
+                    <option value="3"selected>3</option>
+                    <option value="4">4</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="additionalFirstLayerSpeakers">Additional First Layer Speakers:</label>
+                  <input type="checkbox" id="additionalFirstLayerSpeakers">
+                </div>
+                <div>
+                  <label for="additionalSecondLayerSpeakers">Additional Second Layer Speakers:</label>
+                  <input type="checkbox" id="additionalSecondLayerSpeakers">
+                </div>
+                <div>
+                  <label for="frontSpeakerAngle">Front Speaker Angle:</label>
+                  <input type="range" id="frontSpeakerAngle" min="22" max="40" value="30">
+                  <span id="frontSpeakerAngle_value">30</span>
+                </div>
+                <div>
+                  <label for="sideSpeakerAngle">Side Speaker Angle:</label>
+                  <input type="range" id="sideSpeakerAngle" min="90" max="110" value="100">
+                  <span id="sideSpeakerAngle_value">100</span>
+                </div>
+                <div>
+                  <label for="rearSpeakerAngle">Rear Speaker Angle:</label>
+                  <input type="range" id="rearSpeakerAngle" min="120" max="150" value="135">
+                  <span id="rearSpeakerAngle_value">135</span>
+                </div>
+                <div>
+                  <label for="adjustOverheadSpeakers">Adjust Overhead Speakers:</label>
+                  <input type="range" id="adjustOverheadSpeakers" min="-1000" max="500" value="-520">
+                  <span id="adjustOverheadSpeakers_value">-520</span>
+                </div>
+                <hr class="solid">
+
+                <!-- <h2>Analysis</h2>
+                <div>
+                  <label for="visualizeFirstReflections">Visualize First Reflections:</label>
+                  <input type="checkbox" id="visualizeFirstReflections">
+                </div>
+                <div>
+                  <label for="visualizeHeatMap">Visualize Heat Map:</label>
+                  <input type="checkbox" id="visualizeHeatMap">
+                </div>
+                <div>
+                  <label for="adjustHeatmap">Adjust Heat Map:</label>
+                  <input type="range" id="adjustHeatmap" min="0" max="5" value="0">
+                  <span id="adjustHeatmap_value">0</span>
+                </div>
+                <hr class="solid"> -->
+
+                <h2>Add Absorbers</h2>
+                <!-- <div>
+                  <label for="addAbsorbers">Add Absorbers:</label>
+                  <input type="checkbox" id="addAbsorbers">
+                </div> -->
+                <div>
+                  <label for="adjustAbsorberAmount">Adjust Absorber Amount:</label>
+                  <input type="range" id="adjustAbsorberAmount" min="0" max="50" value="0">
+                  <span id="adjustAbsorberAmount_value">0</span>
+                </div>
+                <!-- <div>
+                  <label for="addAbsorbersToCeiling">Add Absorbers to Ceiling:</label>
+                  <input type="checkbox" id="addAbsorbersToCeiling">
+                </div> -->
+                <div>
+                  <label for="adjustAbsorberAmountCeiling">Adjust Absorber Amount (Ceiling):</label>
+                  <input type="range" id="adjustAbsorberAmountCeiling" min="0" max="30" value="0">
+                  <span id="adjustAbsorberAmountCeiling_value">0</span>
+                </div>
+                <div>
+                  <label for="selectAbsorberType">Absorber Material:</label>
+                  <select id="selectAbsorberType">
+                    <option value="1" selected>Material 1</option>
+                    <option value="2" >Material 2</option>
+                    <option value="3">Material 3</option>
+                    <option value="4">Material 4</option>
+                  </select>
+                </div>
+                <div id="widgetControls">
+                  <h3>Toggle Widgets</h3>
+                  <div id="widgetToggles">
+                    <!-- Checkboxes will be dynamically generated here -->
+                  </div>
+                </div>
+            </div>
+
+              
+            <!-- Add this new div for the panel output text -->
+        </div>
+    </div>
+    <div id="topbar">
+      <span>Signed in as: {{ user.username }}</span>
+      <button id="presentButton" onclick="startPresentation()">Present</button>
+
+      <button onclick="window.location.href='/logout/';">Logout</button>
+    </div>
+  
+    <div id="logo-container">
+      <img src="{% static 'rhino_app/Kost_Logo-schwarz.png' %}" alt="Logo" id="logo">
+    </div>
+    <div id="panelWidgets">
+    </div>
+    <!-- New div for the Line Chart -->
+    <div id="chartContainer" style="position: absolute; top: 650px; right: 10px; padding: 10px; background: none; border-radius: 10px; width: 300px; height: 200px;">
+      <canvas id="rtChart" style="width: 100%; height: 100%;"></canvas>
+    </div>
+    
+
+    </div>
+
+    <!-- Import maps polyfill -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.156.1/build/three.module.js",
+            "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.156.1/examples/jsm/controls/OrbitControls.js",
+            "three/examples/jsm/loaders/3DMLoader": "https://unpkg.com/three@0.156.1/examples/jsm/loaders/3DMLoader.js",
+            "rhino3dm": "https://unpkg.com/rhino3dm@8.0.0-beta2/rhino3dm.module.js"
+          }
+        }
+    </script>
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="{% static 'rhino_app/js/script.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+</body>
+</html>
