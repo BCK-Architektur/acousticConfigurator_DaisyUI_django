@@ -100,8 +100,10 @@ def save_preset(request):
         preset = Preset(user=request.user, name=preset_name, inputs=inputs)
         preset.save()
         return JsonResponse({'success': True})
-
+        return redirect('index')  
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
 
 @login_required
 def delete_preset(request, preset_id):
@@ -112,8 +114,11 @@ def delete_preset(request, preset_id):
         preset = Preset.objects.get(id=preset_id, user=request.user)  # Ensure user ownership
         preset.delete()
         return JsonResponse({'success': True})
+        return redirect('index')  
     except Preset.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Preset not found or unauthorized'}, status=404)
+
+    
 
 @login_required
 def create_material(request):

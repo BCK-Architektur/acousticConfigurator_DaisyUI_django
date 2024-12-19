@@ -162,6 +162,7 @@ function attachEventListeners() {
 }
 
 
+
 // Function to update the range slider values based on the selected wall
 function updateRangeForWall(wallSelect, slider, isDoor) {
   if (!wallSelect || !slider) return;
