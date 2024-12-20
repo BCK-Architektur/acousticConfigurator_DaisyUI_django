@@ -36,57 +36,11 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        #panelWidgets {
-            display: grid; /* Use Grid Layout */
-            grid-template-columns: repeat(2, 1fr); /* 2 columns of equal width */
-            grid-template-rows: repeat(3, 1fr); /* 3 rows of equal height */
-            gap: 5px; /* Add spacing between the widgets */
-            position: absolute; /* Ensure it stays positioned relative to the viewport */
-            top: 100px; /* Distance from the top of the screen */
-            right: 10px; /* Distance from the right of the screen */
-            padding: 5px; /* Optional padding around the container */
-            z-index: 1000; /* Ensure it stays above other elements */
-            width: 300px; /* Adjust width to fit 2 columns */
-            height: 530px; /* Adjust height to fit 3 rows */
-            overflow: hidden; /* Remove scrolling */
-            border-radius: 10px; /* Optional: add rounded corners */
-        }
-
-        .circular-widget {
-            width: 120px; /* Adjust size */
-            height: 120px;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column; /* Stack label and value vertically */
-            align-items: center;
-            justify-content: center;
-            background: #f6f6f6; /* Clean solid background */
-            color: #333;
-            text-align: center;
-            font-family: 'Arial', sans-serif; /* Simple font */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
-            transition: transform 0.2s, box-shadow 0.2s;
-            padding: 10px;
-            position: relative;
-        }
-        .circular-widget .value {
-            font-size: 28px; /* Adjust font size as needed */
-            font-weight: 400; /* Regular weight for Space Grotesk */
-            font-family: 'Space Grotesk', sans-serif; /* Apply the Space Grotesk font */
-            color: #333; /* Dark text color */
-        }
-
-        .circular-widget .label {
-            font-size: 12px; /* Small text for labels */
-            font-weight: 400;
-            margin-top: 6px; /* Spacing below number */
-            color: #666; /* Lighter text color */
-        }
     </style>
 </head>
 <body>
     <div id="loader"></div> 
+      <!-- overlay div -->
       <div id="container">
         <div id="overlay" class="p-6 bg-base-100 shadow-lg rounded-lg">
           <div class="flex flex-col gap-4">
@@ -319,13 +273,14 @@
                 <option value="{{ material.id }}">{{ material.name }}</option>
                 {% endfor %}
               </select>
+              <button id="deleteMaterialButton" class="btn btn-outline btn-error btn-sm" onclick="deleteMaterial()">Delete</button>
             </div>
             
-
+            
             <div class="form-control mt-2">
               <button class="btn btn-outline btn-secondary btn-sm" onclick="openMaterialModal()">Create Material</button>
             </div>
-        
+      
             <div id="widgetControls" class="mt-4">
               <h3 class="text-lg font-bold">Toggle Widgets</h3>
               <div id="widgetToggles" class="flex flex-wrap gap-2">
@@ -335,17 +290,18 @@
           </div>
         </div>
       </div>
-
+      <!-- Present and signout buttons -->
       <div id="topbar" class="fixed bottom-2 right-2 p-4 bg-base-100 border border-base-300 rounded-lg shadow-lg flex items-center gap-4">
         <span class="text-sm font-medium">Signed in as: {{ user.username }}</span>
         <button id="presentButton" class="btn btn-outline btn-primary btn-sm" onclick="startPresentation()">Present</button>
         <button class="btn btn-outline btn-secondary btn-sm" onclick="window.location.href='/logout/';">Logout</button>
       </div>
-    
+      <!-- KOST logo container-->
       <div id="logo-container" class="absolute top-8 right-5 z-50 text-center">
         <img src="{% static 'rhino_app/Kost_Logo-schwarz.png' %}" alt="Logo" id="logo" class="w-24 h-auto object-contain">
       </div>
-    
+
+      <!-- Widgets as daisy ui stats-->
       <div id="stats" class="stats stats-vertical shadow absolute mt-24 h-auto right-5 z-50">
         <!-- Number of Absorbers (Walls) -->
         <div class="stat">
@@ -353,41 +309,34 @@
           <div id="noOfAbsorbersWall" class="stat-value">0</div>
           <div class="stat-desc">(Walls)</div>
         </div>
-      
         <!-- Number of Absorbers (Ceiling) -->
         <div class="stat">
           <div class="stat-title">No of Absorbers</div>
           <div id="noOfAbsorbersCeiling" class="stat-value">0</div>
           <div class="stat-desc">(Ceiling)</div>
         </div>
-      
         <!-- Floor Area -->
         <div class="stat">
           <div class="stat-title">Floor Area</div>
           <div id="floorArea" class="stat-value">0</div>
           <div class="stat-desc">(Square Meters)</div>
-        </div>
-      
+        </div>      
         <!-- Total Cost -->
         <div class="stat">
           <div class="stat-title">Cost</div>
           <div id="totalCost" class="stat-value">0</div>
           <div class="stat-desc">(€)</div>
-        </div>
-      
+        </div>      
         <!-- Selected Material -->
         <div class="stat">
           <div class="stat-title">Material</div>
-          <div id="selectedMaterial" class="stat-value "> Material</div>
+          <div id="selectedMaterial" class="stat-value "> - </div>
         </div>
       </div>
-      
-      
       <div id="chartContainer" class="absolute top-[683px] right-5 p-4 bg-base-100 shadow-lg rounded-lg">
         <canvas id="rtChart" class="w-full h-full"></canvas>
         <!-- Resizing Handle -->
-      </div>
-            
+      </div>   
     </div>
 
     <!-- Material Modal -->
@@ -430,7 +379,7 @@
               </div>
               <div>
                 <label for="cost_per_absorber" class="label">Cost per Unit:</label>
-                <input type="number" name="cost_per_absorber" id="cost_per_absorber" class="input input-bordered no-update" step="0.01" min="0" max="1" placeholder="0.0" required>
+                <input type="number" name="cost_per_absorber" id="cost_per_absorber" class="input input-bordered no-update" step="0.01" min="0" max="1000" placeholder="0.0" required>
               </div>
             </div>
           </div>

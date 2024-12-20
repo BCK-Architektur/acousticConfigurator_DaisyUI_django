@@ -45,10 +45,14 @@ function onSliderChange() {
   for (const input of document.getElementsByTagName('input')) {
     switch (input.type) {
       case 'number':
-        inputs[input.id] = input.valueAsNumber;
+        setTimeout(() => {
+          inputs[input.id] = input.valueAsNumber;
+        }, 1000); // Add 1-second delay for number inputs
         break;
       case 'range':
+        setTimeout(() => {
         inputs[input.id] = input.valueAsNumber;
+        }, 200); // Add 1-second delay for number inputs
         updateRangeValue(input.id); // Update displayed value
         break;
       case 'checkbox':
@@ -63,6 +67,7 @@ function onSliderChange() {
   data.inputs = inputs;
   debouncedCompute();
 }
+
 
 // Function to update the displayed value of the range slider
 function updateRangeValue(inputId) {
@@ -380,7 +385,6 @@ async function compute() {
     }
 
     const responseJson = await response.json();
-    console.log("Full response from backend:", responseJson);
 
     collectResults(responseJson);
   } catch (error) {
@@ -442,64 +446,146 @@ function replaceCurrentMesh(threeMesh, type) {
     }
   });
 }
+// Global variables
+let currentMaterial = "N.A"; // Default material name
+let currentCostPerUnit = 0; // Default cost per absorber unit, to be dynamically updated
 
+// Reference to the Chart.js instance
+let chart; 
+
+// Default frequencies and coefficients
+const defaultFrequencies = [125, 250, 500, 1000, 2000, 4000];
+const defaultCoefficients = [0, 0, 0, 0, 0, 0];
+
+let currentAbsorptionCoefficients = [0, 0, 0, 0, 0, 0]; // Default values
+
+async function fetchMaterialDetails(materialId) {
+  try {
+      const response = await fetch(`/get_material/${materialId}/`);
+      const result = await response.json();
+
+      if (result.success) {
+          const materialData = result.material;
+
+          // Update global variables
+          currentMaterial = materialData.name; // Update the material name
+          currentCostPerUnit = materialData.cost_per_unit; // Update the cost per unit dynamically
+          currentAbsorptionCoefficients = [
+              materialData.absorption_coefficients["125hz"],
+              materialData.absorption_coefficients["250hz"],
+              materialData.absorption_coefficients["500hz"],
+              materialData.absorption_coefficients["1000hz"],
+              materialData.absorption_coefficients["2000hz"],
+              materialData.absorption_coefficients["4000hz"]
+          ];
+
+          // Update the UI with the new material name
+          document.getElementById("selectedMaterial").textContent = materialData.name;
+
+          // Optionally update the chart with new absorption coefficients
+          updateChart([125, 250, 500, 1000, 2000, 4000], currentAbsorptionCoefficients);
+      } else {
+          console.error("Failed to fetch material details:", result.error);
+      }
+  } catch (error) {
+      console.error("Error fetching material details:", error);
+  }
+}
+
+
+// Attach event listener to material dropdown
+document.getElementById("selectAbsorberType").addEventListener("change", function () {
+    const materialId = this.value;
+    console.log("Absorber type selected:", materialId);
+
+    if (materialId) {
+        fetchMaterialDetails(materialId);
+    }
+});
+
+// Function to collect results and process data
 function collectResults(responseJson) {
   const values = responseJson.values;
-  console.log("Received response values test:", values);
 
   if (doc !== undefined) doc.delete();
   doc = new rhino.File3dm();
 
-  // Initial values
-  let noOfAbsorbersWall = 0;
-  let noOfAbsorbersCeiling = 0;
-  let floorArea = 0;
-  let totalCost = 0;
-  const costPerAbsorber = 1.5; // Example cost per absorber, replace dynamically if needed
-  let selectedMaterial = "Material"; // Replace dynamically if needed
+  // Initialize variables
+  let wallArea = 0,
+    ceilingArea = 0,
+    floorArea = 0,
+    absorberAreaWall = 0,
+    absorberAreaCeiling = 0,
+    totalVolume = 0,
+    noOfAbsorbersWall = 0,
+    noOfAbsorbersCeiling = 0,
+    totalCost = 0;
 
-  // Iterate through the values
+  // Parse the RH_OUT values
   for (let i = 0; i < values.length; i++) {
     const output = values[i];
-    console.log(`Processing output ${i}:`, output.ParamName, output);
-
-    // Ensure InnerTree and its structure is valid
     if (output.InnerTree && output.InnerTree["{0}"]) {
       const branch = output.InnerTree["{0}"];
-
       if (branch.length > 0) {
-        const item = branch[0]; // Access the first item in the branch
-        const text = item.data?.replace(/^"|"$/g, '') || ""; // Clean up quotes if present
+        const text = branch[0].data?.replace(/^"|"$/g, "") || "";
 
-        // Check for each parameter name and parse the corresponding data
-        if (output.ParamName === "RH_OUT:data_noOfAbs_wall") {
+        // Parse values based on ParamName
+        if (output.ParamName === "RH_OUT:data_wallArea") {
+          wallArea = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_ceilingArea") {
+          ceilingArea = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_floorArea") {
+          floorArea = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_absorberArea_wall") {
+          absorberAreaWall = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_absorberArea_ceiling") {
+          absorberAreaCeiling = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_totalVolume") {
+          totalVolume = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_noOfAbs_wall") {
           noOfAbsorbersWall = parseFloat(text) || 0;
         } else if (output.ParamName === "RH_OUT:data_noOfAbs_ceiling") {
           noOfAbsorbersCeiling = parseFloat(text) || 0;
-        } else if (output.ParamName === "RH_OUT:data_floorArea") {
-          floorArea = parseFloat(text) || 0;
-        } else if (output.ParamName === "RH_OUT:material") {
-          selectedMaterial = text || "Default Material";
         }
-      } else {
-        console.warn(`No data found for ParamName: ${output.ParamName}`);
       }
-    } else {
-      console.warn(`No valid InnerTree for ParamName: ${output.ParamName}`);
     }
   }
 
-  // Calculate total cost
-  totalCost = costPerAbsorber * (noOfAbsorbersWall + noOfAbsorbersCeiling);
+  // Calculate RT60 dynamically for each frequency
+  const frequencies = [125, 250, 500, 1000, 2000, 4000];
+  const RT60 = frequencies.map((_, index) => {
+    const alpha = currentAbsorptionCoefficients[index]; // Dynamic coefficient for the current frequency
+
+    // Subtract absorber areas from wall and ceiling areas
+    const effectiveWallArea = Math.max(0, wallArea - absorberAreaWall); // Ensure it doesn't go negative
+    const effectiveCeilingArea = Math.max(0, ceilingArea - absorberAreaCeiling); // Ensure it doesn't go negative
+
+    // Calculate the total absorption area
+    const totalAbsorptionArea =
+      absorberAreaWall * alpha + // Absorber contribution
+      absorberAreaCeiling * alpha + // Absorber contribution
+      effectiveWallArea * alpha + // Remaining wall area contribution
+      effectiveCeilingArea * alpha + // Remaining ceiling area contribution
+      floorArea * alpha; // Floor contribution
+
+    // Calculate RT60 using Sabine's formula
+    return totalAbsorptionArea > 0 ? (0.161 * totalVolume) / totalAbsorptionArea : 0;
+  });
+
+  // Update the RT60 chart
+  updateChart(frequencies, RT60);
+
+  // Calculate total cost using the dynamically fetched cost per unit
+  totalCost = currentCostPerUnit * (noOfAbsorbersWall + noOfAbsorbersCeiling);
 
   // Update the values directly in the DOM
-  document.getElementById("noOfAbsorbersWall").textContent = noOfAbsorbersWall;
-  document.getElementById("noOfAbsorbersCeiling").textContent = noOfAbsorbersCeiling;
+  document.getElementById("noOfAbsorbersWall").textContent = noOfAbsorbersWall.toFixed(2);
+  document.getElementById("noOfAbsorbersCeiling").textContent = noOfAbsorbersCeiling.toFixed(2);
   document.getElementById("floorArea").textContent = floorArea.toFixed(2);
   document.getElementById("totalCost").textContent = totalCost.toFixed(2);
-  document.getElementById("selectedMaterial").textContent = selectedMaterial;
+  document.getElementById("selectedMaterial").textContent = currentMaterial;
 
-  // Handle meshb64 output (RH_OUT:meshb64)
+  // Handle mesh outputs
   for (let i = 0; i < values.length; i++) {
     const output = values[i];
 
@@ -511,8 +597,6 @@ function collectResults(responseJson) {
           if (rhinoObject) {
             const threeMesh = meshToThreejs(rhinoObject);
             replaceCurrentMesh(threeMesh, "meshb64");
-            console.log("Replacing mesh");
-            // Rotate the mesh
             threeMesh.geometry.rotateX(-Math.PI / 2);
             doc.objects().add(rhinoObject, null);
           }
@@ -520,7 +604,6 @@ function collectResults(responseJson) {
       }
     }
 
-    // Handle meshout output (RH_OUT:meshout)
     if (output.ParamName === "RH_OUT:meshout") {
       for (const path in output.InnerTree) {
         const branch = output.InnerTree[path];
@@ -529,11 +612,9 @@ function collectResults(responseJson) {
           if (rhinoObject) {
             const threeMesh = meshToThreejs(rhinoObject);
             replaceCurrentMesh(threeMesh, "meshout");
-            // Rotate the mesh
             threeMesh.geometry.rotateX(-Math.PI / 2);
             doc.objects().add(rhinoObject, null);
 
-            // Show edges for the mesh very faintly
             const edges = new THREE.EdgesGeometry(threeMesh.geometry);
             const line = new THREE.LineSegments(
               edges,
@@ -541,7 +622,7 @@ function collectResults(responseJson) {
             );
             line.material.depthTest = false;
             line.material.depthWrite = false;
-            line.renderOrder = 1; // Prevent visual glitches of edges on top of mesh
+            line.renderOrder = 1; // Prevent visual glitches
             threeMesh.add(line);
           }
         }
@@ -550,18 +631,16 @@ function collectResults(responseJson) {
   }
 
   zoomCameraToSelection(camera, controls, scene.children, 1.8);
-  // Handle any additional operations if no objects are loaded
+
   if (doc.objects().count < 1) {
     console.error("No rhino objects to load!");
   }
+
   showSpinner(false);
 }
 
-
 ///////////////////////////////////////////////////////////////////////////
-/**
- * Attempt to decode data tree item to rhino geometry
- */
+
 function decodeItem(item) {
   const data = JSON.parse(item.data)
   if (item.type === 'System.String') {
@@ -575,11 +654,6 @@ function decodeItem(item) {
   return null
 }
 
-/**
- * Called when a slider value changes in the UI. Collect all of the
- * slider values and call compute to solve for a new scene
- */
-
 // Debounce function to limit the frequency of compute calls
 function debounce(func, delay) {
     let timeout;
@@ -591,22 +665,16 @@ function debounce(func, delay) {
   
 // Debounced version of compute
 const debouncedCompute = debounce(compute, 100);
-///////////////////////////////////////////////////////////////////////////
-
 
 ///////////////////////////////////////////////////////////////////////////
-/**
- * The animation loop!
- */
+
 function animate() {
   requestAnimationFrame( animate )
   controls.update()
   renderer.render(scene, camera)
 }
 ///////////////////////////////////////////////////////////////////////////
-/**
- * Adjust camera and renderer when window resizes
- */
+
 function onWindowResize() {
   const aspect = window.innerWidth / window.innerHeight
   const frustumSize = 500
@@ -621,9 +689,7 @@ function onWindowResize() {
   animate()
 }
 ///////////////////////////////////////////////////////////////////////////
-/**
- * Adjust orthographic camera to zoom into selection
- */
+
 function zoomCameraToSelection(camera, controls, selection, fitOffset = 1.2) {
   const box = new THREE.Box3();
 
@@ -666,9 +732,7 @@ function zoomCameraToSelection(camera, controls, selection, fitOffset = 1.2) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-/**
- * Shows or hides the loading spinner
- */
+
 function showSpinner(enable) {
   if (enable)
     document.getElementById('loader').style.display = 'block'
@@ -720,7 +784,6 @@ async function savePreset() {
     console.error('Error saving project:', error);
   }
 }
-
 
 async function loadPresets() {
   const url = '/load_presets/';
@@ -824,7 +887,6 @@ async function deletePreset() {
     alert("An error occurred while deleting the project.");
   }
 }
-
 
 let controlWindow = null;
 
@@ -933,7 +995,6 @@ function startPresentation() {
   monitorControlWindow();
 }
 
-
 function setupSyncBetweenWindows(controlWindow) {
     // Sync changes made in the control window to the main window
     controlWindow.document.querySelectorAll('input, select').forEach((input) => {
@@ -978,59 +1039,104 @@ window.restoreNormalMode = restoreNormalMode;
 window.savePreset = savePreset;
 window.deletePreset = deletePreset;
 window.applyPreset = applyPreset;
+window.updateChart = updateChart;
 
+function updateChart(frequencies = defaultFrequencies, coefficients = defaultCoefficients) {
+  if (chart) {
+      // Update the existing chart
+      chart.data.labels = frequencies;
+      chart.data.datasets[0].data = coefficients;
+      chart.update();
+  } else {
+      // Create the chart if it doesn't exist
+      const ctx = document.getElementById("rtChart").getContext("2d");
 
+      chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+              labels: frequencies, // X-axis labels
+              datasets: [
+                  {
+                      label: 'RT',
+                      data: coefficients,
+                      borderColor: '#4CAF50',
+                      borderWidth: 2,
+                      fill: false,
+                      pointRadius: 5,
+                      pointBackgroundColor: '#75CFCF',
+                  },
+              ],
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: {
+                      display: false, // Hide the legend
+                  },
+                  tooltip: {
+                      callbacks: {
+                          label: (context) => `${context.raw.toFixed(2)}`, // Format tooltips
+                      },
+                  },
+              },
+              scales: {
+                  x: {
+                      title: {
+                          display: true,
+                          text: 'Frequency (Hz)',
+                      },
+                  },
+                  y: {
+                      beginAtZero: true,
+                      title: {
+                          display: true,
+                          text: 'RT60',
+                      },
+                  },
+              },
+          },
+      });
+  }
+}
 
-const ctx = document.getElementById("rtChart").getContext("2d");
+// Initialize the chart with default values at the beginning
+updateChart();
 
-// Data for the material
-const frequencies = [125, 250, 500, 1000, 2000, 4000];
-const materialRTValues = [0.8, 1.5, 0.9, 0.8, 0.7, 0.6]; // Reverberation times for the material
+async function deleteMaterial() {
+  const selectElement = document.getElementById("selectAbsorberType");
+  const materialId = selectElement.value;
 
-// Create the chart
-const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: frequencies, // X-axis labels
-        datasets: [
-            {
-                label: 'Material', // Label is still present but not shown in the legend
-                data: materialRTValues,
-                borderColor: '#4CAF50',
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 5,
-                pointBackgroundColor: '#75CFCF',
-            },
-        ],
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false, // Hide the legend
-            },
-            tooltip: {
-                callbacks: {
-                    label: (context) => `${context.raw.toFixed(2)} s`, // Format tooltips
-                },
-            },
-        },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Frequency (Hz)',
-                },
-            },
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'RT (s)',
-                },
-            },
-        },
-    },
-});
+  if (!materialId) {
+      alert("Please select a material to delete.");
+      return;
+  }
+
+  if (!confirm("Are you sure you want to delete this material?")) {
+      return;
+  }
+
+  try {
+      const response = await fetch(`/delete_material/${materialId}/`, {
+          method: "POST",
+          headers: {
+              "X-CSRFToken": getCSRFToken() // Function to get CSRF token
+          }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+          alert(result.message);
+          // Remove the deleted material from the dropdown
+          selectElement.querySelector(`option[value="${materialId}"]`).remove();
+          selectElement.value = ""; // Reset the dropdown
+      } else {
+          alert(`Failed to delete material: ${result.error}`);
+      }
+  } catch (error) {
+      console.error("Error deleting material:", error);
+  }
+}
+
+window.deleteMaterial = deleteMaterial;

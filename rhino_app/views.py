@@ -10,6 +10,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from .models import Preset , Material
 from .forms import MaterialForm
+from django.shortcuts import get_object_or_404
 
 def solve_grasshopper(request):
     if request.method == "POST":
@@ -79,7 +80,6 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
-
 @login_required
 def index(request):
     # Fetch presets for the logged-in user
@@ -104,7 +104,6 @@ def save_preset(request):
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 
-
 @login_required
 def delete_preset(request, preset_id):
     """
@@ -118,8 +117,6 @@ def delete_preset(request, preset_id):
     except Preset.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Preset not found or unauthorized'}, status=404)
 
-    
-
 @login_required
 def create_material(request):
     if request.method == 'POST':
@@ -130,9 +127,6 @@ def create_material(request):
     else:
         form = MaterialForm()
     return render(request, 'rhino_app/index.html', {'form': form})
-
-from django.http import JsonResponse
-from .models import Material
 
 def get_material_details(request, material_id):
     """
@@ -155,3 +149,20 @@ def get_material_details(request, material_id):
         return JsonResponse({"success": True, "material": material_data})
     except Material.DoesNotExist:
         return JsonResponse({"success": False, "error": "Material not found"}, status=404)
+
+from django.shortcuts import redirect, get_object_or_404
+from django.http import JsonResponse
+
+def delete_material(request, material_id):
+    """
+    Deletes a material by its ID and redirects to the index page.
+    """
+    if request.method == "POST":  # Ensure only POST requests are allowed
+        try:
+            material = get_object_or_404(Material, id=material_id)
+            material.delete()
+            # Redirect to index page after successful deletion
+            return redirect('index')  # Replace 'index' with the name of your URL pattern for ''
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
