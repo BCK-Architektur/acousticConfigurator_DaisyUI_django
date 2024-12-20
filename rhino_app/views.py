@@ -130,3 +130,28 @@ def create_material(request):
     else:
         form = MaterialForm()
     return render(request, 'rhino_app/index.html', {'form': form})
+
+from django.http import JsonResponse
+from .models import Material
+
+def get_material_details(request, material_id):
+    """
+    Fetch material details including absorption coefficients for a given material ID.
+    """
+    try:
+        material = Material.objects.get(id=material_id)
+        material_data = {
+            "name": material.name,
+            "absorption_coefficients": {
+                "125hz": material.absorption_125hz,
+                "250hz": material.absorption_250hz,
+                "500hz": material.absorption_500hz,
+                "1000hz": material.absorption_1000hz,
+                "2000hz": material.absorption_2000hz,
+                "4000hz": material.absorption_4000hz,
+            },
+            "cost_per_unit": material.cost_per_absorber,
+        }
+        return JsonResponse({"success": True, "material": material_data})
+    except Material.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Material not found"}, status=404)
