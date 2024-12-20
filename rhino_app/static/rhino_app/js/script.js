@@ -456,7 +456,7 @@ function collectResults(responseJson) {
   let floorArea = 0;
   let totalCost = 0;
   const costPerAbsorber = 1.5; // Example cost per absorber, replace dynamically if needed
-  let selectedMaterial = "Default Material"; // Replace dynamically if needed
+  let selectedMaterial = "Material"; // Replace dynamically if needed
 
   // Iterate through the values
   for (let i = 0; i < values.length; i++) {
@@ -981,14 +981,11 @@ window.applyPreset = applyPreset;
 
 
 
-
 const ctx = document.getElementById("rtChart").getContext("2d");
 
-// Data for multiple materials
+// Data for the material
 const frequencies = [125, 250, 500, 1000, 2000, 4000];
-const material1RTValues = [0.8, 1.5, 0.9, 0.8, 0.7, 0.6]; // Material 1
-const material2RTValues = [0.9, 1.2, 1.0, 0.9, 0.8, 0.7]; // Material 2
-const material3RTValues = [0.7, 1.0, 0.8, 0.7, 0.6, 0.5]; // Material 3
+const materialRTValues = [0.8, 1.5, 0.9, 0.8, 0.7, 0.6]; // Reverberation times for the material
 
 // Create the chart
 const chart = new Chart(ctx, {
@@ -997,31 +994,13 @@ const chart = new Chart(ctx, {
         labels: frequencies, // X-axis labels
         datasets: [
             {
-                label: 'Material 1',
-                data: material1RTValues,
+                label: 'Material', // Label is still present but not shown in the legend
+                data: materialRTValues,
                 borderColor: '#4CAF50',
                 borderWidth: 2,
                 fill: false,
                 pointRadius: 5,
                 pointBackgroundColor: '#75CFCF',
-            },
-            {
-                label: 'Material 2',
-                data: material2RTValues,
-                borderColor: '#FF5722',
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 5,
-                pointBackgroundColor: '#FFC107',
-            },
-            {
-                label: 'Material 3',
-                data: material3RTValues,
-                borderColor: '#3F51B5',
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 5,
-                pointBackgroundColor: '#E91E63',
             },
         ],
     },
@@ -1029,6 +1008,9 @@ const chart = new Chart(ctx, {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+            legend: {
+                display: false, // Hide the legend
+            },
             tooltip: {
                 callbacks: {
                     label: (context) => `${context.raw.toFixed(2)} s`, // Format tooltips
@@ -1052,5 +1034,3 @@ const chart = new Chart(ctx, {
         },
     },
 });
-
-
