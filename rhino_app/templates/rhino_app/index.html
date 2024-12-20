@@ -282,11 +282,12 @@
             </div>
       
             <div id="widgetControls" class="mt-4">
-              <h3 class="text-lg font-bold">Toggle Widgets</h3>
+              <h3 class="text-lg font-bold">Toggle Stats</h3>
               <div id="widgetToggles" class="flex flex-wrap gap-2">
-                <!-- Dynamically generated checkboxes -->
+                <!-- Dynamically generated checkboxes will be added here -->
               </div>
             </div>
+            
           </div>
         </div>
       </div>
@@ -332,6 +333,24 @@
           <div class="stat-title">Material</div>
           <div id="selectedMaterial" class="stat-value "> - </div>
         </div>
+        <!-- Total Volume -->
+        <div class="stat">
+          <div class="stat-title">Volume</div>
+          <div id="totalVolume" class="stat-value">0</div>
+          <div class="stat-desc">(Cu.M)</div>
+        </div>  
+        <!-- absorberAreaWall -->
+        <div class="stat">
+          <div class="stat-title">Absorbers Area (Wall)</div>
+          <div id="absorberAreaWall" class="stat-value">0</div>
+          <div class="stat-desc">(Sq.M)</div>
+        </div>  
+        <!-- absorberAreaWall -->
+        <div class="stat">
+          <div class="stat-title">Absorbers Area (Ceiling)</div>
+          <div id="absorberAreaCeiling" class="stat-value">0</div>
+          <div class="stat-desc">(Sq.M)</div>
+        </div>  
       </div>
       <div id="chartContainer" class="absolute top-[683px] right-5 p-4 bg-base-100 shadow-lg rounded-lg">
         <canvas id="rtChart" class="w-full h-full"></canvas>

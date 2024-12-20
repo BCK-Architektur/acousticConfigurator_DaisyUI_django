@@ -529,6 +529,7 @@ function collectResults(responseJson) {
       if (branch.length > 0) {
         const text = branch[0].data?.replace(/^"|"$/g, "") || "";
 
+
         // Parse values based on ParamName
         if (output.ParamName === "RH_OUT:data_wallArea") {
           wallArea = parseFloat(text) || 0;
@@ -584,6 +585,11 @@ function collectResults(responseJson) {
   document.getElementById("floorArea").textContent = floorArea.toFixed(2);
   document.getElementById("totalCost").textContent = totalCost.toFixed(2);
   document.getElementById("selectedMaterial").textContent = currentMaterial;
+  document.getElementById("totalVolume").textContent = totalVolume;
+  document.getElementById("absorberAreaWall").textContent = absorberAreaWall;
+  document.getElementById("absorberAreaCeiling").textContent = absorberAreaCeiling;
+
+
 
   // Handle mesh outputs
   for (let i = 0; i < values.length; i++) {
@@ -1140,3 +1146,86 @@ async function deleteMaterial() {
 }
 
 window.deleteMaterial = deleteMaterial;
+
+
+const stats = [
+  { id: "noOfAbsorbersWall", label: "No of Absorbers (Wall)" },
+  { id: "noOfAbsorbersCeiling", label: "No of Absorbers (Ceiling)" },
+  { id: "floorArea", label: "Floor Area" },
+  { id: "totalCost", label: "Cost" },
+  { id: "selectedMaterial", label: "Material" },
+  { id: "totalVolume", label: "Volume" },
+  { id: "absorberAreaWall", label: "Absorber Area (Wall)" },
+  { id: "absorberAreaCeiling", label: "Absorber Area (Ceiling)" },
+];
+
+const widgetTogglesContainer = document.getElementById("widgetToggles");
+const maxSelected = 5;
+
+// Create checkboxes dynamically
+stats.forEach((stat) => {
+  const checkboxContainer = document.createElement("div");
+  checkboxContainer.classList.add("form-control", "flex", "items-center");
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.id = `toggle-${stat.id}`;
+  checkbox.dataset.target = stat.id;
+  checkbox.classList.add("checkbox");
+  checkbox.checked = true; // Default checked
+
+  const label = document.createElement("label");
+  label.htmlFor = `toggle-${stat.id}`;
+  label.textContent = stat.label;
+  label.classList.add("label");
+
+  checkboxContainer.appendChild(checkbox);
+  checkboxContainer.appendChild(label);
+  widgetTogglesContainer.appendChild(checkboxContainer);
+});
+
+// Enforce exactly 5 checkboxes rule
+const enforceCheckboxLimit = () => {
+  const checkboxes = widgetTogglesContainer.querySelectorAll("input[type='checkbox']");
+  const checkedCheckboxes = Array.from(checkboxes).filter((checkbox) => checkbox.checked);
+
+  // Prevent deselecting if exactly 5 are selected
+  if (checkedCheckboxes.length === maxSelected) {
+    checkboxes.forEach((checkbox) => {
+      checkbox.disabled = !checkbox.checked; // Disable unchecked checkboxes
+    });
+  } else if (checkedCheckboxes.length < maxSelected) {
+    checkboxes.forEach((checkbox) => {
+      checkbox.disabled = false; // Enable all checkboxes if less than 5 are selected
+    });
+  }
+
+  // Ensure at least 5 are always selected
+  if (checkedCheckboxes.length < maxSelected) {
+    const uncheckedCheckboxes = Array.from(checkboxes).filter((checkbox) => !checkbox.checked);
+    for (let i = 0; i < maxSelected - checkedCheckboxes.length; i++) {
+      uncheckedCheckboxes[i].checked = true; // Auto-select until 5 are checked
+    }
+  }
+
+  // Update stats visibility
+  updateStatsVisibility(checkedCheckboxes.map((checkbox) => checkbox.dataset.target));
+};
+
+// Attach event listeners to checkboxes
+widgetTogglesContainer.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+  checkbox.addEventListener("change", enforceCheckboxLimit);
+});
+
+// Initial enforcement to ensure the rule is applied on page load
+enforceCheckboxLimit();
+
+// Function to update stats visibility
+function updateStatsVisibility(visibleStats) {
+  const statsElements = document.querySelectorAll("#stats .stat");
+  statsElements.forEach((statElement) => {
+    const statId = statElement.querySelector(".stat-value").id;
+    statElement.style.display = visibleStats.includes(statId) ? "block" : "none";
+  });
+}
+
