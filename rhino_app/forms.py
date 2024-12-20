@@ -15,4 +15,5 @@ class MaterialForm(forms.ModelForm):
             'absorption_1000hz': forms.NumberInput(attrs={'class': 'input input-bordered', 'placeholder': '0.0'}),
             'absorption_2000hz': forms.NumberInput(attrs={'class': 'input input-bordered', 'placeholder': '0.0'}),
             'absorption_4000hz': forms.NumberInput(attrs={'class': 'input input-bordered', 'placeholder': '0.0'}),
+            'cost_per_absorber': forms.NumberInput(attrs={'class': 'input input-bordered', 'placeholder': '0.0'}),
         }

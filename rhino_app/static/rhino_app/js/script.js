@@ -443,76 +443,66 @@ function replaceCurrentMesh(threeMesh, type) {
   });
 }
 
-function createCircularWidget(labelText, valueText) {
-  let formattedValue = valueText;
-
-  // Check if the label is for reverberation time
-  if (labelText.toLowerCase().includes("reverberation time")) {
-    if (typeof valueText === 'string' && valueText.includes(',')) {
-      // Replace comma with a dot, format to 2 decimals, and append "s"
-      formattedValue = parseFloat(valueText.replace(',', '.')).toFixed(2) + " s";
-    }
-  }
-
-  // Create the widget container
-  const widget = document.createElement('div');
-  widget.className = 'circular-widget';
-
-  // Create the value element (large text)
-  const value = document.createElement('div');
-  value.className = 'value';
-  value.textContent = formattedValue;
-
-  // Create the label element (small text)
-  const label = document.createElement('div');
-  label.className = 'label';
-  label.textContent = labelText;
-
-  // Append value and label to the widget
-  widget.appendChild(value);
-  widget.appendChild(label);
-
-  return widget;
-}
-
-
-
-// Collect Results with adjusted logic for adding objects to the scene
 function collectResults(responseJson) {
   const values = responseJson.values;
-  console.log("Received response values:", values);
+  console.log("Received response values test:", values);
 
   if (doc !== undefined) doc.delete();
   doc = new rhino.File3dm();
 
-  // Clear existing widgets
-  const panelWidgetsContainer = document.getElementById("panelWidgets");
-  panelWidgetsContainer.innerHTML = ''; // Clear previous widgets
-  const panelData = []; // Array to store label-value pairs for widgets
-  for (let i = 0; i < values.length; i++) {
-      const output = values[i];
-      console.log(`Processing output ${i}:`, output.ParamName);
-      // Handle panel output text (RH_OUT:panelOut)
-      if (output.ParamName === "RH_OUT:panelOut") {
-        const panelData = output.InnerTree["{0}"];
-        if (panelData && panelData.length > 0) {
-            panelData.forEach(item => {
-                const text = item.data.replace(/^"|"$/g, '');
-    
-                // Extract and format value and label
-                const [labelText, valueText] = text.split(':'); // Example splitting for "Label:Value"
-                
-                // Create a clean widget with formatted value
-                const widget = createCircularWidget(labelText.trim(), valueText.trim());
-                
-                // Append widget to the container
-                document.getElementById('panelWidgets').appendChild(widget);
-            });
-        }
-    }
-    
+  // Initial values
+  let noOfAbsorbersWall = 0;
+  let noOfAbsorbersCeiling = 0;
+  let floorArea = 0;
+  let totalCost = 0;
+  const costPerAbsorber = 1.5; // Example cost per absorber, replace dynamically if needed
+  let selectedMaterial = "Default Material"; // Replace dynamically if needed
 
-    // Handle meshb64 output (RH_OUT:meshb64)
+  // Iterate through the values
+  for (let i = 0; i < values.length; i++) {
+    const output = values[i];
+    console.log(`Processing output ${i}:`, output.ParamName, output);
+
+    // Ensure InnerTree and its structure is valid
+    if (output.InnerTree && output.InnerTree["{0}"]) {
+      const branch = output.InnerTree["{0}"];
+
+      if (branch.length > 0) {
+        const item = branch[0]; // Access the first item in the branch
+        const text = item.data?.replace(/^"|"$/g, '') || ""; // Clean up quotes if present
+
+        // Check for each parameter name and parse the corresponding data
+        if (output.ParamName === "RH_OUT:data_noOfAbs_wall") {
+          noOfAbsorbersWall = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_noOfAbs_ceiling") {
+          noOfAbsorbersCeiling = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:data_floorArea") {
+          floorArea = parseFloat(text) || 0;
+        } else if (output.ParamName === "RH_OUT:material") {
+          selectedMaterial = text || "Default Material";
+        }
+      } else {
+        console.warn(`No data found for ParamName: ${output.ParamName}`);
+      }
+    } else {
+      console.warn(`No valid InnerTree for ParamName: ${output.ParamName}`);
+    }
+  }
+
+  // Calculate total cost
+  totalCost = costPerAbsorber * (noOfAbsorbersWall + noOfAbsorbersCeiling);
+
+  // Update the values directly in the DOM
+  document.getElementById("noOfAbsorbersWall").textContent = noOfAbsorbersWall;
+  document.getElementById("noOfAbsorbersCeiling").textContent = noOfAbsorbersCeiling;
+  document.getElementById("floorArea").textContent = floorArea.toFixed(2);
+  document.getElementById("totalCost").textContent = totalCost.toFixed(2);
+  document.getElementById("selectedMaterial").textContent = selectedMaterial;
+
+  // Handle meshb64 output (RH_OUT:meshb64)
+  for (let i = 0; i < values.length; i++) {
+    const output = values[i];
+
     if (output.ParamName === "RH_OUT:meshb64") {
       for (const path in output.InnerTree) {
         const branch = output.InnerTree[path];
@@ -521,15 +511,15 @@ function collectResults(responseJson) {
           if (rhinoObject) {
             const threeMesh = meshToThreejs(rhinoObject);
             replaceCurrentMesh(threeMesh, "meshb64");
-            console.log('Replacing mesh')
-            // rotate the mesh
-            threeMesh.geometry.rotateX(-Math.PI/2);
+            console.log("Replacing mesh");
+            // Rotate the mesh
+            threeMesh.geometry.rotateX(-Math.PI / 2);
             doc.objects().add(rhinoObject, null);
-
           }
         }
       }
     }
+
     // Handle meshout output (RH_OUT:meshout)
     if (output.ParamName === "RH_OUT:meshout") {
       for (const path in output.InnerTree) {
@@ -538,45 +528,36 @@ function collectResults(responseJson) {
           const rhinoObject = decodeItem(branch[j]);
           if (rhinoObject) {
             const threeMesh = meshToThreejs(rhinoObject);
-            replaceCurrentMesh(threeMesh, "meshout"); 
-            // rotate the mesh
-            threeMesh.geometry.rotateX(-Math.PI/2);
+            replaceCurrentMesh(threeMesh, "meshout");
+            // Rotate the mesh
+            threeMesh.geometry.rotateX(-Math.PI / 2);
             doc.objects().add(rhinoObject, null);
 
             // Show edges for the mesh very faintly
             const edges = new THREE.EdgesGeometry(threeMesh.geometry);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
+            const line = new THREE.LineSegments(
+              edges,
+              new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
+            );
             line.material.depthTest = false;
             line.material.depthWrite = false;
             line.renderOrder = 1; // Prevent visual glitches of edges on top of mesh
             threeMesh.add(line);
-
-
           }
         }
       }
     }
   }
 
-  // Display panel output text
-  // document.getElementById("panelOutput").innerText = panelText;
-
-  // Generate and append widgets for panel output data
-  panelData.forEach(({ label, value }) => {
-    const widget = createCircularWidget(label, value);
-    panelWidgetsContainer.appendChild(widget);
-  });
-
-
   zoomCameraToSelection(camera, controls, scene.children, 1.8);
   // Handle any additional operations if no objects are loaded
   if (doc.objects().count < 1) {
-    console.error('No rhino objects to load!');
-    showSpinner(false);
-    return;
+    console.error("No rhino objects to load!");
   }
   showSpinner(false);
 }
+
+
 ///////////////////////////////////////////////////////////////////////////
 /**
  * Attempt to decode data tree item to rhino geometry
@@ -1000,75 +981,76 @@ window.applyPreset = applyPreset;
 
 
 
-// Data for the chart
+
+const ctx = document.getElementById("rtChart").getContext("2d");
+
+// Data for multiple materials
 const frequencies = [125, 250, 500, 1000, 2000, 4000];
-const rtValues = [0.8, 1.5, 0.9, 0.8, 0.7, 0.6];
+const material1RTValues = [0.8, 1.5, 0.9, 0.8, 0.7, 0.6]; // Material 1
+const material2RTValues = [0.9, 1.2, 1.0, 0.9, 0.8, 0.7]; // Material 2
+const material3RTValues = [0.7, 1.0, 0.8, 0.7, 0.6, 0.5]; // Material 3
 
-// Chart options
-const options = {
-  chart: {
+// Create the chart
+const chart = new Chart(ctx, {
     type: 'line',
-    height: 350, // Adjust the height as needed
-    toolbar: {
-      show: true, // Display the toolbar for interactivity
+    data: {
+        labels: frequencies, // X-axis labels
+        datasets: [
+            {
+                label: 'Material 1',
+                data: material1RTValues,
+                borderColor: '#4CAF50',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 5,
+                pointBackgroundColor: '#75CFCF',
+            },
+            {
+                label: 'Material 2',
+                data: material2RTValues,
+                borderColor: '#FF5722',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 5,
+                pointBackgroundColor: '#FFC107',
+            },
+            {
+                label: 'Material 3',
+                data: material3RTValues,
+                borderColor: '#3F51B5',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 5,
+                pointBackgroundColor: '#E91E63',
+            },
+        ],
     },
-  },
-  series: [
-    {
-      name: 'RT (s)', // Label for the data series
-      data: rtValues,
-    },
-  ],
-  xaxis: {
-    categories: frequencies, // Frequencies as X-axis labels
-    title: {
-      text: 'Frequency (Hz)', // X-axis title
-      style: {
-        fontSize: '12px',
-        fontWeight: 'bold',
-      },
-    },
-  },
-  yaxis: {
-    title: {
-      text: 'RT (s)', // Y-axis title
-      style: {
-        fontSize: '12px',
-        fontWeight: 'bold',
-      },
-    },
-    min: 0, // Start Y-axis at 0
-  },
-  stroke: {
-    curve: 'smooth', // Smooth lines
-    width: 2,
-  },
-  markers: {
-    size: 5, // Marker size for points
-    colors: ['#75CFCF'], // Customize marker colors
-  },
-  tooltip: {
-    enabled: true, // Enable tooltips for better interactivity
-    y: {
-      formatter: (value) => `${value.toFixed(2)} s`, // Format Y-axis values
-    },
-  },
-  colors: ['#4CAF50'], // Line color
-  grid: {
-    borderColor: '#e7e7e7',
-  },
-  responsive: [
-    {
-      breakpoint: 600,
-      options: {
-        chart: {
-          height: 300, // Adjust height for small screens
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: (context) => `${context.raw.toFixed(2)} s`, // Format tooltips
+                },
+            },
         },
-      },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Frequency (Hz)',
+                },
+            },
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'RT (s)',
+                },
+            },
+        },
     },
-  ],
-};
+});
 
-// Render the chart
-const chart = new ApexCharts(document.querySelector("#rtChart"), options);
-chart.render();
+

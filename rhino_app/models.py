@@ -17,6 +17,7 @@ class Material(models.Model):
     absorption_1000hz = models.FloatField(default=0.0)  # Absorption coefficient for 1000 Hz
     absorption_2000hz = models.FloatField(default=0.0)  # Absorption coefficient for 2000 Hz
     absorption_4000hz = models.FloatField(default=0.0)  # Absorption coefficient for 4000 Hz
+    cost_per_absorber = models.FloatField(default=1.0)  # Cost per absorber
 
     def __str__(self):
         return self.name

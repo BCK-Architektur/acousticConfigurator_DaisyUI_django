@@ -480,7 +480,7 @@ function createCircularWidget(labelText, valueText) {
 // Collect Results with adjusted logic for adding objects to the scene
 function collectResults(responseJson) {
   const values = responseJson.values;
-  console.log("Received response values:", values);
+  console.log("Received response values test:", values);
 
   if (doc !== undefined) doc.delete();
   doc = new rhino.File3dm();

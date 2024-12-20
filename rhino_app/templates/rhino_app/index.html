@@ -346,112 +346,75 @@
         <img src="{% static 'rhino_app/Kost_Logo-schwarz.png' %}" alt="Logo" id="logo" class="w-24 h-auto object-contain">
       </div>
     
-      <div id="panelWidgets">
-      </div>
-
-      <div class="stats stats-vertical shadow absolute mt-24 h-auto right-5 z-50">
+      <div id="stats" class="stats stats-vertical shadow absolute mt-24 h-auto right-5 z-50">
+        <!-- Number of Absorbers (Walls) -->
         <div class="stat">
           <div class="stat-figure text-accent">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              class="inline-block h-8 w-8 stroke-current">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block h-8 w-8 stroke-current">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
             </svg>
           </div>
           <div class="stat-title">No of Absorbers</div>
-          <div class="stat-value">12</div>
+          <div id="noOfAbsorbersWall" class="stat-value">0</div>
           <div class="stat-desc">(Walls)</div>
         </div>
       
+        <!-- Number of Absorbers (Ceiling) -->
         <div class="stat">
           <div class="stat-figure text-accent">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              class="inline-block h-8 w-8 stroke-current">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block h-8 w-8 stroke-current">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
             </svg>
           </div>
           <div class="stat-title">No of Absorbers</div>
-          <div class="stat-value">09</div>
+          <div id="noOfAbsorbersCeiling" class="stat-value">0</div>
           <div class="stat-desc">(Ceiling)</div>
         </div>
-
+      
+        <!-- Floor Area -->
         <div class="stat">
           <div class="stat-figure text-accent">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              class="inline-block h-8 w-8 stroke-current">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block h-8 w-8 stroke-current">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
             </svg>
           </div>
           <div class="stat-title">Floor Area</div>
-          <div class="stat-value">25</div>
+          <div id="floorArea" class="stat-value">0</div>
           <div class="stat-desc">(Square Meters)</div>
         </div>
-
+      
+        <!-- Total Cost -->
         <div class="stat">
           <div class="stat-figure text-accent">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              class="inline-block h-8 w-8 stroke-current">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block h-8 w-8 stroke-current">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2h10a2 2 0 002-2V8m-9 4h4"></path>
             </svg>
           </div>
           <div class="stat-title">Cost</div>
-          <div class="stat-value">1.240</div>
+          <div id="totalCost" class="stat-value">0</div>
           <div class="stat-desc">(€)</div>
         </div>
-
+      
+        <!-- Selected Material -->
         <div class="stat">
           <div class="stat-figure text-accent">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              class="inline-block h-8 w-8 stroke-current">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block h-8 w-8 stroke-current">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2h10a2 2 0 002-2V8m-9 4h4"></path>
             </svg>
           </div>
           <div class="stat-title">Material</div>
-          <div class="stat-value">1</div>
-          <div class="stat-desc">Test Material</div>
+          <div id="selectedMaterial" class="stat-value">Default Material</div>
+          <div class="stat-desc">Selected Material</div>
         </div>
       </div>
-
-      <!-- Updated div for the Line Chart with DaisyUI and Tailwind CSS -->
-      <div id="chartContainer" class="absolute top-[683px] right-5 p-4 bg-base-100 shadow-lg rounded-lg w-[300px] h-[200px]">
-        <canvas id="rtChart" class="w-full h-full"></canvas>
-      </div>
-
       
+      
+
+      <div id="chartContainer" class="absolute top-[683px] right-5 p-4 bg-base-100 shadow-lg rounded-lg w-[600px] h-[400px]">
+        <canvas id="rtChart" class="w-full h-full"></canvas>
+        <!-- Resizing Handle -->
+      </div>
+            
     </div>
 
     <!-- Material Modal -->
@@ -491,6 +454,10 @@
               <div>
                 <label for="absorption_4000hz" class="label">4000 Hz:</label>
                 <input type="number" name="absorption_4000hz" id="absorption_4000hz" class="input input-bordered no-update" step="0.01" min="0" max="1" placeholder="0.0" required>
+              </div>
+              <div>
+                <label for="cost_per_absorber" class="label">Cost per Unit:</label>
+                <input type="number" name="cost_per_absorber" id="cost_per_absorber" class="input input-bordered no-update" step="0.01" min="0" max="1" placeholder="0.0" required>
               </div>
             </div>
           </div>
