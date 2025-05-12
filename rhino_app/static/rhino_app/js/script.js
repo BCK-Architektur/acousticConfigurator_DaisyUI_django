@@ -1184,33 +1184,33 @@ stats.forEach((stat) => {
   widgetTogglesContainer.appendChild(checkboxContainer);
 });
 
-// Enforce exactly 5 checkboxes rule
-const enforceCheckboxLimit = () => {
-  const checkboxes = widgetTogglesContainer.querySelectorAll("input[type='checkbox']");
-  const checkedCheckboxes = Array.from(checkboxes).filter((checkbox) => checkbox.checked);
+// // Enforce exactly 5 checkboxes rule
+// const enforceCheckboxLimit = () => {
+//   const checkboxes = widgetTogglesContainer.querySelectorAll("input[type='checkbox']");
+//   const checkedCheckboxes = Array.from(checkboxes).filter((checkbox) => checkbox.checked);
 
-  // Prevent deselecting if exactly 5 are selected
-  if (checkedCheckboxes.length === maxSelected) {
-    checkboxes.forEach((checkbox) => {
-      checkbox.disabled = !checkbox.checked; // Disable unchecked checkboxes
-    });
-  } else if (checkedCheckboxes.length < maxSelected) {
-    checkboxes.forEach((checkbox) => {
-      checkbox.disabled = false; // Enable all checkboxes if less than 5 are selected
-    });
-  }
+//   // Prevent deselecting if exactly 5 are selected
+//   if (checkedCheckboxes.length === maxSelected) {
+//     checkboxes.forEach((checkbox) => {
+//       checkbox.disabled = !checkbox.checked; // Disable unchecked checkboxes
+//     });
+//   } else if (checkedCheckboxes.length < maxSelected) {
+//     checkboxes.forEach((checkbox) => {
+//       checkbox.disabled = false; // Enable all checkboxes if less than 5 are selected
+//     });
+//   }
 
-  // Ensure at least 5 are always selected
-  if (checkedCheckboxes.length < maxSelected) {
-    const uncheckedCheckboxes = Array.from(checkboxes).filter((checkbox) => !checkbox.checked);
-    for (let i = 0; i < maxSelected - checkedCheckboxes.length; i++) {
-      uncheckedCheckboxes[i].checked = true; // Auto-select until 5 are checked
-    }
-  }
+//   // Ensure at least 5 are always selected
+//   if (checkedCheckboxes.length < maxSelected) {
+//     const uncheckedCheckboxes = Array.from(checkboxes).filter((checkbox) => !checkbox.checked);
+//     for (let i = 0; i < maxSelected - checkedCheckboxes.length; i++) {
+//       uncheckedCheckboxes[i].checked = true; // Auto-select until 5 are checked
+//     }
+//   }
 
-  // Update stats visibility
-  updateStatsVisibility(checkedCheckboxes.map((checkbox) => checkbox.dataset.target));
-};
+//   // Update stats visibility
+//   updateStatsVisibility(checkedCheckboxes.map((checkbox) => checkbox.dataset.target));
+// };
 
 // Attach event listeners to checkboxes
 widgetTogglesContainer.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
