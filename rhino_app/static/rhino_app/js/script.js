@@ -1212,13 +1212,13 @@ stats.forEach((stat) => {
 //   updateStatsVisibility(checkedCheckboxes.map((checkbox) => checkbox.dataset.target));
 // };
 
-// Attach event listeners to checkboxes
-widgetTogglesContainer.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
-  checkbox.addEventListener("change", enforceCheckboxLimit);
-});
+// // Attach event listeners to checkboxes
+// widgetTogglesContainer.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+//   checkbox.addEventListener("change", enforceCheckboxLimit);
+// });
 
 // Initial enforcement to ensure the rule is applied on page load
-enforceCheckboxLimit();
+// enforceCheckboxLimit();
 
 // Function to update stats visibility
 function updateStatsVisibility(visibleStats) {
@@ -1229,3 +1229,194 @@ function updateStatsVisibility(visibleStats) {
   });
 }
 
+ // Loader messages and logic
+ let loaderInterval;
+ const loaderMessages = ["Talking to OpenAI...", "Analyzing prompt", "Loading model"];
+ let currentLoaderIndex = 0;
+
+ function showLoader() {
+     const loader = document.getElementById('loader');
+     loader.style.display = 'block';
+     loader.textContent = loaderMessages[currentLoaderIndex]; // Set initial message
+     loaderInterval = setInterval(() => {
+         currentLoaderIndex = (currentLoaderIndex + 1) % loaderMessages.length;
+         loader.textContent = loaderMessages[currentLoaderIndex]; // Cycle through messages
+     }, 1000); // Change message every 1 second
+ }
+
+ function hideLoader() {
+     const loader = document.getElementById('loader');
+     loader.style.display = 'none';
+     clearInterval(loaderInterval);
+     currentLoaderIndex = 0; // Reset index
+ }
+
+ function updateInputs(parameters) {
+ // Loop through parameters and update corresponding input fields
+    Object.keys(parameters).forEach(key => {
+      const inputElement = document.getElementById(key);
+      if (!inputElement) return;
+
+      const value = parameters[key];
+
+      if (inputElement.type === "checkbox") {
+        inputElement.checked = value === true || value === "true";
+      } else if (inputElement.tagName === "SELECT" || inputElement.tagName === "INPUT") {
+        inputElement.value = value;
+      }
+
+      // Update associated value display span
+      const valueDisplay = document.getElementById(`${key}_value`);
+      if (valueDisplay) {
+        valueDisplay.textContent = value;
+      }
+    });
+
+    // Manually trigger change logic for material dropdown (important!)
+    if (parameters.selectAbsorberType) {
+      const materialSelect = document.getElementById("selectAbsorberType");
+      if (materialSelect) {
+        const selectedMaterialId = parameters.selectAbsorberType;
+        fetchMaterialDetails(selectedMaterialId); // <-- this is the key
+      }
+    }
+     // Trigger compute after updating inputs
+     onSliderChange();
+     }
+
+     document.getElementById('send_prompt').addEventListener('click', async () => {
+         const chatbox = document.getElementById('chatbox');
+         const prompt = chatbox.value.trim();
+
+         if (!prompt) return; // Prevent empty submissions
+
+         // Add user prompt as chat-start bubble
+         addChatMessage(prompt, false);
+
+         // Clear the textarea
+         chatbox.value = '';
+
+         // Show the loader
+         showLoader();
+
+         try {
+             const csrfToken = getCSRFToken(); // Ensure you have the CSRF token logic
+             const currentInputs = getInputs();
+             console.log("Current Inputs:", currentInputs);
+
+             const response = await fetch('/api/openai/chat/', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'X-CSRFToken': csrfToken
+                 },
+                 body: JSON.stringify({ prompt ,  input_data: currentInputs})
+             });
+
+             if (response.ok) {
+                 const data = await response.json();
+
+                 // Debugging: Check the received data in the console
+                 console.log("Response JSON:", data);
+                 console.log("Response Reasoning:", data.parameters.reasoning);
+                 console.log("Response Parameters:", data.parameters.parameters);
+
+                 // Check and add reasoning from the response as chat-end bubble
+                 if (data.parameters.reasoning) {
+                     addChatMessage(data.parameters.reasoning, true);
+                 } else {
+                     addChatMessage('Error: No reasoning found in the response.', true);
+                 }
+
+                 // Call updateInputs to update form fields with parameters from the response
+                 if (data.parameters) {
+                     updateInputs(data.parameters.parameters);
+                 }
+             } else {
+                 addChatMessage('Error: Unable to process the prompt.', true);
+             }
+         } catch (error) {
+             console.error('Error during fetch:', error);
+             addChatMessage('Error: Unable to reach the server.', true);
+         } finally {
+             // Hide the loader
+             hideLoader();
+         }
+     });
+
+ // Function to append a chat message dynamically
+ function addChatMessage(message, isResponse = false) {
+     const chatMessages = document.getElementById('chat-messages');
+
+     // Create chat container
+     const chat = document.createElement('div');
+     chat.className = `chat ${isResponse ? 'chat-start' : 'chat-end'}`;
+
+     // Create chat bubble
+     const chatBubble = document.createElement('div');
+     chatBubble.className = 'chat-bubble';
+     chatBubble.innerHTML = message;
+
+     // Append bubble to chat and chat to chat messages container
+     chat.appendChild(chatBubble);
+     chatMessages.appendChild(chat);
+
+     // Scroll to the bottom of the chat box
+     chatMessages.scrollTop = chatMessages.scrollHeight;
+ }
+
+ let recognition;
+const overlay = document.getElementById('speech-overlay');
+const micButton = document.getElementById('mic-button');
+const chatbox = document.getElementById('chatbox');
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  let finalTranscript = '';
+
+  recognition.onstart = () => {
+    overlay.style.display = 'block';
+    overlay.textContent = 'Listening...';
+    micButton.textContent = '🛑';
+  };
+
+  recognition.onresult = (event) => {
+    let interimTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      } else {
+        interimTranscript += event.results[i][0].transcript;
+      }
+    }
+    overlay.textContent = finalTranscript + interimTranscript;
+    chatbox.value = finalTranscript + interimTranscript;
+  };
+
+  recognition.onerror = (e) => {
+    console.error('Speech recognition error:', e);
+    overlay.textContent = 'Error: ' + e.error;
+  };
+
+  recognition.onend = () => {
+    overlay.style.display = 'none';
+    micButton.textContent = '🎙️';
+  };
+
+  micButton.addEventListener('click', () => {
+    if (micButton.textContent === '🎙️') {
+      finalTranscript = '';
+      recognition.start();
+    } else {
+      recognition.stop();
+    }
+  });
+} else {
+  micButton.disabled = true;
+  micButton.title = "Speech recognition not supported in this browser.";
+}

@@ -42,6 +42,42 @@
         #overlay.hidden {
           transform: translateX(-100%);
         }
+        .chat-box {
+                position: fixed;
+                bottom: 0;
+                left: 5px;
+                max-height: 400px;
+                width: 350px;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                background-color: #fff;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                z-index: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+            }
+
+            #chat-messages {
+                flex-grow: 1; /* Takes up available space */
+                overflow-y: auto; /* Enables vertical scrolling */
+                margin-bottom: 10px;
+                padding-right: 5px;
+                max-height: 300px; /* Optional: Constrain max height */
+            }
+
+            .chat-input {
+                display: flex;
+                flex-direction: row;
+                gap: 5px;
+                margin-top: 10px;
+            }
+
+            .chat-input textarea {
+                flex-grow: 1;
+                resize: none;
+            }
 
     </style>
 </head>
@@ -342,7 +378,7 @@
         <!-- Selected Material -->
         <div class="stat">
           <div class="stat-title">Material</div>
-          <div id="selectedMaterial" class="stat-value "> - </div>
+          <div id="selectedMaterial" class="stat-value text-sm"> - </div>
         </div>
         <!-- Total Volume -->
         <div class="stat">
@@ -369,6 +405,31 @@
         <canvas id="rtChart" class="w-full h-full"></canvas>
         <!-- Resizing Handle -->
       </div>   
+      <div id="speech-overlay" style="
+        position: fixed;
+        bottom: 110px;
+        left: 5px;
+        width: 350px;
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        display: none;
+        z-index: 10;">
+    </div>
+
+      <div id="chat-box" class="chat-box absolute bottom-0 left -5 p-4 bg-base-100 shadow-lg rounded-lg">
+        <div id="chat-messages">
+            <!-- Chat messages will be appended here -->
+        </div>
+        <div class="chat-input">
+            <textarea id="chatbox" class="textarea textarea-bordered" placeholder="Type your prompt here..."></textarea>
+            <button id="mic-button" class="btn btn-accent">🎙️</button>
+            <button id="send_prompt" class="btn btn-primary">Send</button>
+        </div>
+    </div>
+    
     </div>
 
 
@@ -470,6 +531,6 @@
   const overlay = document.getElementById('overlay');
   overlay.classList.toggle('hidden');
 }
-
 </script>
+
 </html>
